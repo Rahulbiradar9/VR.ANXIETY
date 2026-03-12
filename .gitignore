@@ -1,0 +1,16 @@
+Library/
+Temp/
+Logs/
+Build/
+Obj/
+PythonServer/venv/
+*.dll
+*.so
+*.dylib
+*.exe
+Library/
+Temp/
+Logs/
+Build/
+Obj/
+PythonServer/venv/
