@@ -55,10 +55,20 @@ venv\Scripts\activate
 source venv/bin/activate
 ```
 
-Install the exact package dependencies defined in the requirements file:
+Install the required package dependencies using the `requirements.txt` file:
 ```bash
 pip install -r requirements.txt
 ```
+
+This will install all necessary packages with their corresponding versions, including:
+- `fastapi==0.115.*`
+- `uvicorn==0.34.*`
+- `python-multipart==0.0.*`
+- `requests==2.32.*`
+- `openai-whisper==20240930`
+- `pyttsx3==2.90`
+
+*(Note: Depending on your system, you might still need to install `torch`, `torchvision`, and `torchaudio` manually for optimal performance.)*
 
 **Note on Whisper & PyTorch**: You may need to separately install PyTorch according to your system specs (CUDA vs CPU) [from PyTorch's official site](https://pytorch.org/) to run Whisper effectively. Furthermore, `pyttsx3` relies on system TTS drivers (e.g., SAPI5 on Windows). Ensure these are enabled on your OS.
 
