@@ -1,4 +1,5 @@
-# VR.ANXIETY
+# WORK IN PROGRESS
+## VR.ANXIETY
 
 VR.ANXIETY is a virtual reality application combining Unity 3D with an intelligent Python AI Backend. It simulates conversational interactions for users—such as an interview training session—using advanced local AI modeling to evaluate and engage with the user via continuous voice-to-voice interaction. 
 
