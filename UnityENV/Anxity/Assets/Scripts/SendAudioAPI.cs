@@ -14,6 +14,8 @@ public class QAData
 
 public class SendAudioAPI : MonoBehaviour
 {
+    // True while the AI is speaking — MicrophoneRecorder reads this to pause listening
+    [HideInInspector] public bool isPlayingAudio = false;
 
     string apiURL = "http://127.0.0.1:8000/upload-audio";
 
@@ -80,11 +82,13 @@ public class SendAudioAPI : MonoBehaviour
                         AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
                         if (audioSource != null && clip != null)
                         {
+                            isPlayingAudio = true;
                             audioSource.clip = clip;
                             audioSource.Play();
                             
                             // Wait for the audio to finish playing
                             yield return new WaitForSeconds(clip.length);
+                            isPlayingAudio = false;
                         }
                     }
                     else
@@ -145,8 +149,13 @@ public class SendAudioAPI : MonoBehaviour
                         AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
                         if (audioSource != null && clip != null)
                         {
+                            isPlayingAudio = true;
                             audioSource.clip = clip;
                             audioSource.Play();
+
+                            // Wait for the AI audio to fully finish before allowing mic recording again
+                            yield return new WaitForSeconds(clip.length);
+                            isPlayingAudio = false;
                         }
                     }
                     else

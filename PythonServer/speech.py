@@ -1,9 +1,7 @@
-import whisper
+from faster_whisper import WhisperModel
 
-model = whisper.load_model("base")
+model = WhisperModel("base", device="cpu", compute_type="int8")
 
 def speech_to_text(audio_path):
-    
-    result = model.transcribe(audio_path)
-
-    return result["text"]
+    segments, _ = model.transcribe(audio_path)
+    return " ".join(segment.text.strip() for segment in segments)

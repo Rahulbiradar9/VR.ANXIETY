@@ -96,6 +96,15 @@ public class MicrophoneRecorder : MonoBehaviour
         {
             if (device == null) yield break;
 
+            // Wait until the AI has finished speaking before listening for user input
+            if (sendAudioAPI != null && sendAudioAPI.isPlayingAudio)
+            {
+                Debug.Log("AI is speaking, waiting before listening...");
+                while (sendAudioAPI.isPlayingAudio)
+                    yield return null;
+                Debug.Log("AI finished speaking, now listening for user.");
+            }
+
             clip = Microphone.Start(device, false, 60, 44100);
             Debug.Log("Listening for voice...");
             
