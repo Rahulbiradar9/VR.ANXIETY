@@ -95,6 +95,20 @@ async def websocket_endpoint(websocket: WebSocket):
     except Exception as e:
         print(f"WebSocket metadata parse error using random session_id={session_id}")
 
+    # Generate initial greeting
+    greeting_text = "Hi, my name is Alice. What do you want to talk about?"
+    print(f"[{session_id}] WS Bot (Initial): {greeting_text}")
+    session_manager.add_message(session_id, "assistant", greeting_text)
+    
+    try:
+        await websocket.send_json({"type": "text", "text": greeting_text})
+        tts_audio_bytes = await tts_service.generate_audio(greeting_text)
+        await websocket.send_json({"type": "audio_start"})
+        await websocket.send_bytes(tts_audio_bytes)
+        await websocket.send_json({"type": "audio_end"})
+    except Exception as e:
+        print(f"Error sending initial greeting: {e}")
+
     try:
         while True:
             # Receive audio frame (binary)

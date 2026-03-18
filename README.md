@@ -11,9 +11,9 @@ A production-ready FastAPI backend and Unity client that enables real-time conve
 ## Architecture & Tech Stack
 - **API Framework**: FastAPI, Uvicorn, websockets
 - **Audio Processing**: miniaudio
-- **Speech-to-Text (STT)**: Google Web Speech API via `SpeechRecognition` (Free)
-- **Language Model**: Groq Llama 3.1 8B API (Free)
-- **Text-to-Speech (TTS)**: gTTS (Free)
+- **Speech-to-Text (STT)**: Google Web Speech API via `SpeechRecognition`
+- **Language Model**: Groq Llama 3.1 8B API
+- **Text-to-Speech (TTS)**: Microsoft Edge TTS via `edge-tts` (High-quality Neural Voices)
 
 ## Running Locally
 
@@ -49,7 +49,7 @@ uvicorn main:app --reload
 2. Ensure you have the [NativeWebSocket package](https://github.com/endel/NativeWebSocket) installed in your Unity project.
 3. Attach the `VoiceInteractionClient.cs` script to any active GameObject in your Scene.
 4. Assign an `AudioSource` component to the script in the Inspector.
-5. Hit Play in Unity. Hold down the **Spacebar** to record audio, and release it to send the audio to the backend. The backend will process the speech and the Unity client will automatically play the synthesized voice response.
+5. Hit Play in Unity. The client will automatically start processing audio and sending it to the backend. The backend will process the speech and the Unity client will automatically play the synthesized voice response.
 
 ## REST Endpoint Testing
 If you wish to test the fallback REST endpoint quickly with `curl`:

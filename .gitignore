@@ -38,3 +38,9 @@ Anxity.2/*.VC.db
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# IDEs and Editors
+.vscode/
+.idea/
+Anxity.2/UserSettings/
+Anxity.2/*.slnx

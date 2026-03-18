@@ -24,6 +24,12 @@ public class VoiceInteractionClient : MonoBehaviour
     [Header("State")]
     public bool isRecording = false;
 
+    [Header("VAD Settings")]
+    public float silenceThreshold = 0.02f;
+    public float silenceDurationToStop = 1.5f;
+    private float currentSilenceTime = 0f;
+    private int startRecordingPos = 0;
+    
     // Buffer for TTS playback
     private Queue<byte[]> audioQueue = new Queue<byte[]>();
     private bool isPlayingTTS = false;
@@ -36,8 +42,8 @@ public class VoiceInteractionClient : MonoBehaviour
         if (audioSource == null)
             audioSource = GetComponent<AudioSource>();
             
-        // For continuous real-time, you could make the user hold to talk or use VAD on client side.
-        // Here we demonstrate a push-to-talk style for simplicity in the demo.
+        // Start processing automatically
+        StartCoroutine(ContinuousListeningLoop());
     }
 
     void Update()
@@ -49,20 +55,6 @@ public class VoiceInteractionClient : MonoBehaviour
 #endif
         }
 
-        // Check for Input System Spacebar
-        if (UnityEngine.InputSystem.Keyboard.current != null)
-        {
-            if (UnityEngine.InputSystem.Keyboard.current.spaceKey.wasPressedThisFrame)
-            {
-                StartRecordingAndConnect();
-            }
-            
-            if (UnityEngine.InputSystem.Keyboard.current.spaceKey.wasReleasedThisFrame && isRecording)
-            {
-                StopRecordingAndSend();
-            }
-        }
-
         // Check TTS Playback queue
         if (!isPlayingTTS && audioQueue.Count > 0)
         {
@@ -70,15 +62,77 @@ public class VoiceInteractionClient : MonoBehaviour
         }
     }
 
-    private async void StartRecordingAndConnect()
+    private IEnumerator ContinuousListeningLoop()
     {
-        isRecording = true;
-        Debug.Log("Recording started...");
+        // Start connecting WebSocket immediately
+        ConnectWebSocket();
 
-        // Start Microphone
-        recordingClip = Microphone.Start(null, false, maxRecordDurationSeconds, recordFreq);
+        // Start Microphone continuously looping
+        recordingClip = Microphone.Start(null, true, maxRecordDurationSeconds, recordFreq);
+        while (!(Microphone.GetPosition(null) > 0)) { yield return null; } // Wait for mic
 
-        // Connect WebSocket if not connected
+        float[] sampleData = new float[256];
+        
+        while (true)
+        {
+            yield return null;
+
+            if (isPlayingTTS)
+            {
+                // To avoid bot hearing itself, we could reset states.
+                if (isRecording)
+                {
+                    isRecording = false;
+                }
+                currentSilenceTime = 0f;
+                continue;
+            }
+
+            int micPosition = Microphone.GetPosition(null);
+            if (micPosition < 256) continue;
+
+            recordingClip.GetData(sampleData, micPosition - 256);
+            float rms = CalculateRMS(sampleData);
+
+            if (rms > silenceThreshold)
+            {
+                currentSilenceTime = 0f;
+                if (!isRecording)
+                {
+                    Debug.Log("VAD: Speech started...");
+                    isRecording = true;
+                    startRecordingPos = micPosition; // Rough start
+                }
+            }
+            else
+            {
+                if (isRecording)
+                {
+                    currentSilenceTime += Time.deltaTime;
+                    if (currentSilenceTime > silenceDurationToStop)
+                    {
+                        Debug.Log("VAD: Silence detected, sending audio...");
+                        isRecording = false;
+                        int endRecordingPos = micPosition;
+                        SendAudioData(startRecordingPos, endRecordingPos);
+                    }
+                }
+            }
+        }
+    }
+
+    private float CalculateRMS(float[] samples)
+    {
+        float sum = 0;
+        for (int i = 0; i < samples.Length; i++)
+        {
+            sum += samples[i] * samples[i];
+        }
+        return Mathf.Sqrt(sum / samples.Length);
+    }
+
+    private async void ConnectWebSocket()
+    {
         if (websocket == null || websocket.State != WebSocketState.Open)
         {
             websocket = new WebSocket(websocketUrl);
@@ -86,7 +140,6 @@ public class VoiceInteractionClient : MonoBehaviour
             websocket.OnOpen += () =>
             {
                 Debug.Log("WebSocket Connection open!");
-                // Send metadata
                 string metadata = $"{{\"session_id\": \"{sessionId}\"}}";
                 websocket.SendText(metadata);
             };
@@ -103,13 +156,10 @@ public class VoiceInteractionClient : MonoBehaviour
 
             websocket.OnMessage += (bytes) =>
             {
-                // Simple protocol: We distinguish JSON messages and Binary audio.
-                // In a robust app, use a proper framing format (header + payload size).
                 string message = Encoding.UTF8.GetString(bytes);
                 
                 if (message.StartsWith("{"))
                 {
-                    // It's JSON metadata
                     Debug.Log("Received JSON: " + message);
                     if (message.Contains("audio_start"))
                     {
@@ -124,7 +174,6 @@ public class VoiceInteractionClient : MonoBehaviour
                 }
                 else
                 {
-                    // It's binary audio data
                     if (incomingAudioStream != null)
                     {
                         incomingAudioStream.Write(bytes, 0, bytes.Length);
@@ -143,27 +192,13 @@ public class VoiceInteractionClient : MonoBehaviour
         }
     }
 
-    private async void StopRecordingAndSend()
+    private async void SendAudioData(int startPos, int endPos)
     {
-        isRecording = false;
-        
-        // Capture the exact position of the recording *before* we end the microphone
-        int lastPos = Microphone.GetPosition(null);
-        if (lastPos == 0) lastPos = recordingClip.samples;
-        
-        Microphone.End(null);
-        Debug.Log("Recording stopped. Sending to server...");
-
         if (websocket != null && websocket.State == WebSocketState.Open)
         {
-            // Convert AudioClip to byte array (WAV format), trimming silence
-            byte[] wavData = ConvertClipToWav(recordingClip, lastPos);
+            byte[] wavData = ConvertClipToWav(recordingClip, startPos, endPos);
             await websocket.Send(wavData);
             Debug.Log($"Sent {wavData.Length} bytes of audio data.");
-        }
-        else
-        {
-            Debug.LogWarning("Cannot send. WebSocket is not open.");
         }
     }
 
@@ -172,6 +207,12 @@ public class VoiceInteractionClient : MonoBehaviour
         isPlayingTTS = true;
         byte[] mp3Data = audioQueue.Dequeue();
         
+        if (mp3Data == null || mp3Data.Length <= 1)
+        {
+            isPlayingTTS = false;
+            yield break;
+        }
+
         // For demonstration, server sends raw PCM (16-bit, 16kHz, mono) without RIFF headers
         
         float[] floatArray = new float[mp3Data.Length / 2];
@@ -200,19 +241,29 @@ public class VoiceInteractionClient : MonoBehaviour
         }
     }
 
-    // Helper: Convert Unity AudioClip to standard WAV byte array
-    private byte[] ConvertClipToWav(AudioClip clip, int endPosition)
+    // Helper: Convert Unity AudioClip to standard WAV byte array, handling wrap-around
+    private byte[] ConvertClipToWav(AudioClip clip, int startPos, int endPos)
     {
         MemoryStream stream = new MemoryStream();
         BinaryWriter writer = new BinaryWriter(stream);
 
-        // Use the recorded endPosition to trim science
-        float[] samples = new float[endPosition * clip.channels];
-        clip.GetData(samples, 0);
-
         int hz = clip.frequency;
         int channels = clip.channels;
-        int samplesCount = samples.Length;
+        
+        // Handling wrap around for circular buffer
+        int samplesCount = endPos >= startPos ? (endPos - startPos) : ((clip.samples - startPos) + endPos);
+        if (samplesCount <= 0) return new byte[0]; // Avoid issue if calculation is strange
+        
+        float[] fullClipSamples = new float[clip.samples * clip.channels];
+        clip.GetData(fullClipSamples, 0);
+        
+        float[] extractSamples = new float[samplesCount * clip.channels];
+        for(int i = 0; i < samplesCount; i++)
+        {
+            int readPos = (startPos + i) % clip.samples;
+            // Assumes mono
+            extractSamples[i] = fullClipSamples[readPos];
+        }
 
         // WAV Header
         writer.Write(Encoding.UTF8.GetBytes("RIFF"));
@@ -230,9 +281,9 @@ public class VoiceInteractionClient : MonoBehaviour
         writer.Write(samplesCount * 2);
 
         // Convert floats to 16-bit PCM back into the stream
-        for (int i = 0; i < samples.Length; i++)
+        for (int i = 0; i < extractSamples.Length; i++)
         {
-            short sample = (short)(samples[i] * 32767.0f);
+            short sample = (short)(extractSamples[i] * 32767.0f);
             writer.Write(sample);
         }
 

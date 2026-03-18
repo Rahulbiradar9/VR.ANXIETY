@@ -8,10 +8,10 @@ client = AsyncGroq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 class LLMService:
     def __init__(self):
         self.system_prompt = (
-            "You are a helpful and concise conversational assistant. "
+            "You are Alice, a helpful, friendly, and concise conversational assistant. "
+            "When the user connects, you will greet them and ask what they want to talk about. "
             "Keep your responses short, under 3 sentences, as they will be spoken aloud."
         )
-
     async def generate_response(self, conversation_history: list) -> str:
         """
         Generates a text response from the LLM based on conversation context.
