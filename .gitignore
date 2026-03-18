@@ -1,0 +1,40 @@
+# Python
+PythonServer/venv/
+PythonServer/__pycache__/
+PythonServer/*.pyc
+.env
+
+# Unity
+Anxity.2/[Ll]ibrary/
+Anxity.2/[Tt]emp/
+Anxity.2/[Oo]bj/
+Anxity.2/[Bb]uild/
+Anxity.2/[Bb]uilds/
+Anxity.2/[Ll]ogs/
+Anxity.2/[Mm]emoryCaptures/
+Anxity.2/.vs/
+Anxity.2/ExportedObj/
+Anxity.2/.consulo/
+Anxity.2/*.csproj
+Anxity.2/*.unityproj
+Anxity.2/*.sln
+Anxity.2/*.suo
+Anxity.2/*.tmp
+Anxity.2/*.user
+Anxity.2/*.userprefs
+Anxity.2/*.pidb
+Anxity.2/*.booproj
+Anxity.2/*.svd
+Anxity.2/*.pdb
+Anxity.2/*.mdb
+Anxity.2/*.opendb
+Anxity.2/*.VC.db
+
+# OS Generated
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
