@@ -26,6 +26,11 @@ build/
 # Temp audio files generated during runtime
 PythonServer/*.wav
 PythonServer/*.mp3
+PythonServer/*.ogg
+
+# Test / scratch scripts (not production code)
+PythonServer/tts_test.py
+PythonServer/ws_test.py
 
 # ==============================================
 # UNITY (Anxity.2)
@@ -42,6 +47,7 @@ Anxity.2/[Mm]emoryCaptures/
 Anxity.2/[Uu]ser[Ss]ettings/
 Anxity.2/_Recovery/
 Anxity.2/ExportedObj/
+Anxity.2/Assets/_Recovery/
 
 # Visual Studio / Rider generated files
 Anxity.2/.vs/
