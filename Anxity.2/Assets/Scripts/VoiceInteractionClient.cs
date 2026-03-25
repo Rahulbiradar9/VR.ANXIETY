@@ -7,6 +7,13 @@ using System.Threading.Tasks;
 using UnityEngine;
 using NativeWebSocket; // Requires NativeWebSocket package from Unity Asset Store or GitHub (https://github.com/endel/NativeWebSocket)
 
+[System.Serializable]
+public class WSMessage
+{
+    public string type;   // e.g. "audio_start", "audio_end"
+    public string text;   // AI response text when present
+}
+
 public class VoiceInteractionClient : MonoBehaviour
 {
     [Header("Network Settings")]
@@ -102,6 +109,8 @@ public class VoiceInteractionClient : MonoBehaviour
                     Debug.Log("VAD: Speech started...");
                     isRecording = true;
                     startRecordingPos = micPosition; // Rough start
+                    // Show listening indicator in dialog UI
+                    DialogUIManager.Instance?.ShowUserMessage("🎤 Listening...");
                 }
             }
             else
@@ -161,15 +170,42 @@ public class VoiceInteractionClient : MonoBehaviour
                 if (message.StartsWith("{"))
                 {
                     Debug.Log("Received JSON: " + message);
-                    if (message.Contains("audio_start"))
+
+                    // Try to parse for a text field (AI transcript)
+                    try
                     {
-                        incomingAudioStream = new MemoryStream();
+                        WSMessage parsed = JsonUtility.FromJson<WSMessage>(message);
+
+                        // type == "text" means the server is sending the AI reply text.
+                        // NativeWebSocket fires OnMessage on Unity main thread via
+                        // DispatchMessageQueue(), so Unity API calls are safe here.
+                        if (parsed?.type == "text" && !string.IsNullOrEmpty(parsed.text))
+                        {
+                            string aiText = parsed.text;
+                            DialogUIManager.Instance?.ShowAIMessage(aiText);
+                        }
+                        else if (parsed?.type == "audio_start")
+                        {
+                            incomingAudioStream = new MemoryStream();
+                        }
+                        else if (parsed?.type == "audio_end")
+                        {
+                            audioQueue.Enqueue(incomingAudioStream.ToArray());
+                            incomingAudioStream.Dispose();
+                            incomingAudioStream = null;
+                        }
                     }
-                    else if (message.Contains("audio_end"))
+                    catch (Exception ex)
                     {
-                        audioQueue.Enqueue(incomingAudioStream.ToArray());
-                        incomingAudioStream.Dispose();
-                        incomingAudioStream = null;
+                        Debug.LogWarning("[VoiceClient] JSON parse error: " + ex.Message);
+                        if (message.Contains("audio_start"))
+                            incomingAudioStream = new MemoryStream();
+                        else if (message.Contains("audio_end"))
+                        {
+                            audioQueue.Enqueue(incomingAudioStream.ToArray());
+                            incomingAudioStream.Dispose();
+                            incomingAudioStream = null;
+                        }
                     }
                 }
                 else

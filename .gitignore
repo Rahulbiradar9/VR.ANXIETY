@@ -11,7 +11,6 @@
 PythonServer/venv/
 PythonServer/.venv/
 PythonServer/__pycache__/
-PythonServer/services/__pycache__/
 PythonServer/**/__pycache__/
 PythonServer/**/*.pyc
 PythonServer/**/*.pyo
@@ -52,6 +51,7 @@ Anxity.2/Assets/_Recovery/
 # Visual Studio / Rider generated files
 Anxity.2/.vs/
 Anxity.2/.consulo/
+Anxity.2/.vscode/
 Anxity.2/*.csproj
 Anxity.2/*.unityproj
 Anxity.2/*.sln
@@ -67,12 +67,18 @@ Anxity.2/*.pdb
 Anxity.2/*.mdb
 Anxity.2/*.opendb
 Anxity.2/*.VC.db
-Anxity.2/.vscode/
 
-# APK/build artifacts
+# APK / mobile build artifacts
 Anxity.2/*.apk
 Anxity.2/*.aab
 Anxity.2/*.ipa
+
+# Unity crash reports
+Anxity.2/sysinfo.txt
+Anxity.2/crashlytics-build.properties
+
+# IL2CPP
+Anxity.2/Il2CppOutputProject/
 
 # ==============================================
 # OS GENERATED

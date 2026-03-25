@@ -97,7 +97,9 @@ public class AICharacterController : MonoBehaviour
                     Debug.Log("User started speaking...");
                     isRecording = true;
                     // Buffer 0.5s of audio to not cut off the first word
-                    startRecordingPos = Mathf.Max(0, micPosition - (recordFreq / 2)); 
+                    startRecordingPos = Mathf.Max(0, micPosition - (recordFreq / 2));
+                    // Show a listening indicator in the dialog UI
+                    DialogUIManager.Instance?.ShowUserMessage("🎤 Listening...");
                 }
             }
             else
@@ -155,6 +157,9 @@ public class AICharacterController : MonoBehaviour
                 ProcessAudioResponse response = JsonUtility.FromJson<ProcessAudioResponse>(jsonResponse);
                 
                 Debug.Log($"AI Response Text: {response.text}");
+                
+                // Show the AI text response in the dialog UI
+                DialogUIManager.Instance?.ShowAIMessage(response.text);
                 
                 // Decode and Play the Audio bytes
                 StartCoroutine(PlayResponseAudio(response.audio_base64));
