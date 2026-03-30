@@ -13,11 +13,11 @@ User (VR Headset / Desktop)
 Unity VR Client  (Anxity.2)
   ├── Microphone capture + client-side VAD (RMS silence detection)
   ├── Sends WAV audio via WebSocket  (/ws/audio-stream)
-  ├── Receives  {"type":"text",  "text":"..."}  → shows on Dialog Canvas
+  ├── Receives  {"type":"text",  "text":"..."}  → displays on TextMeshPro Canvas
   ├── Receives  {"type":"audio_start"}  then raw PCM bytes then {"type":"audio_end"}
   ├── Decodes PCM → AudioClip → plays through AudioSource
   ├── Triggers isTalking animator parameter (lip-sync)
-  └── World-Space Dialog Canvas billboards text beside character
+  └── World-Space UI Canvas displays text beside character
      │
      ▼
 FastAPI Backend  (PythonServer)
@@ -41,7 +41,7 @@ FastAPI Backend  (PythonServer)
 | Unity Version | Unity 6 (or 2022 LTS) |
 | VR SDK | XR Interaction Toolkit + Oculus / OpenXR |
 | Transport | WebSocket (`/ws/audio-stream`) + REST fallback (`/process-audio`) |
-| Dialog UI | World-Space Canvas (`DialogUIManager`) — billboard, follows character |
+| Dialog UI | World-Space Canvas with TextMeshPro — attached to character |
 
 ---
 
@@ -69,7 +69,6 @@ FastAPI Backend  (PythonServer)
         ├── Scripts/
         │   ├── VoiceInteractionClient.cs    # Primary WebSocket client + VAD
         │   ├── AICharacterController.cs     # HTTP fallback client + animator
-        │   ├── DialogUIManager.cs           # World-Space dialog canvas UI
         │   └── UnityMainThreadDispatcher.cs # Thread-safe Unity API calls
         ├── MainAnimatorController.controller
         ├── Scenes/                           # Unity scenes
@@ -140,10 +139,12 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 5. In the **Voice Interaction Client** Inspector:
    - Set `Websocket Url` to `ws://<YOUR_PC_LAN_IP>:8000/ws/audio-stream`
    - *(Find your IP via `ipconfig` on Windows)*
-6. **Dialog Canvas setup:**
-   - Select your character → **Add Component → Dialog UI Manager**
-   - Optionally set `Position Offset` to adjust canvas position (default: right side, mid-height)
-   - The canvas builds itself automatically at runtime — no manual Canvas setup needed
+6. **UI Canvas Setup:**
+   - Create a **Canvas** under your character (`GameObject > UI > Canvas`)
+   - Change Canvas **Render Mode** to `World Space`
+   - Scale down Canvas (e.g., `0.005`) and position it above the character
+   - Add a **Text - TextMeshPro** element to the Canvas
+   - Drag the TextMeshPro element into the `Response Text Display` slot of the **Voice Interaction Client** script
 7. **Animator Controller** (`MainAnimatorController`):
    - Add a **Bool** parameter named `isTalking`
    - Transition `Idle → Talking` when `isTalking = true` (no exit time)
@@ -192,11 +193,11 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 ## How It Works (Conversation Flow)
 
 1. Unity connects WebSocket → server sends greeting text + audio
-2. Dialog Canvas displays greeting text beside Alice
+2. TextMeshPro Canvas displays greeting text beside Alice
 3. Continuous microphone loop detects speech via RMS VAD
 4. After 1.5 s silence → WAV chunk sent to server
 5. Server: STT → LLM → TTS → sends `text` message then PCM audio
-6. Unity shows AI text in the dialog canvas immediately
+6. Unity shows AI text on the world-space UI canvas immediately
 7. Unity decodes PCM → plays through `AudioSource`, sets `isTalking = true`
 8. Animation plays. When audio ends, `isTalking = false` → resuming listening
 
@@ -206,7 +207,8 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 
 | Problem | Fix |
 |---|---|
-| Dialog canvas blank | Ensure no old `Canvas` object in the Hierarchy. `DialogUIManager` must be on (or a child of) the character. |
+| UI text doesn't update | Make sure your Text (TMP) object is assigned to the **Response Text Display** slot in the Inspector. |
+| Text appears giant/clipping | Ensure the Canvas is set to **World Space** and Scale is adjusted to a small value like `0.005`. |
 | WebSocket won't connect | Check that the backend is running and the URL uses your PC's LAN IP, not `localhost` |
 | No audio playback | Verify `AudioSource` is assigned on the character. Check Unity console for PCM decode errors. |
 | "isTalking" has no effect | Add the Bool parameter in the Animator Controller and set up the transitions. |

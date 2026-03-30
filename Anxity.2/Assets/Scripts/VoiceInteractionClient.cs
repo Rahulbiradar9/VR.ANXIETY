@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using NativeWebSocket; // Requires NativeWebSocket package from Unity Asset Store or GitHub (https://github.com/endel/NativeWebSocket)
+using TMPro; // Added for TextMeshPro UI support
 
 [System.Serializable]
 public class WSMessage
@@ -30,6 +31,10 @@ public class VoiceInteractionClient : MonoBehaviour
     
     [Header("State")]
     public bool isRecording = false;
+
+    [Header("UI Settings")]
+    [Tooltip("Drag and drop your TextMeshPro UI element here")]
+    public TextMeshProUGUI responseTextDisplay;
 
     [Header("VAD Settings")]
     public float silenceThreshold = 0.02f;
@@ -109,8 +114,10 @@ public class VoiceInteractionClient : MonoBehaviour
                     Debug.Log("VAD: Speech started...");
                     isRecording = true;
                     startRecordingPos = micPosition; // Rough start
+                    
+                    // Only show in dialog UI or console
                     // Show listening indicator in dialog UI
-                    DialogUIManager.Instance?.ShowUserMessage("🎤 Listening...");
+                    DialogUIManager.Instance?.ShowUserMessage("Listening...");
                 }
             }
             else
@@ -121,6 +128,10 @@ public class VoiceInteractionClient : MonoBehaviour
                     if (currentSilenceTime > silenceDurationToStop)
                     {
                         Debug.Log("VAD: Silence detected, sending audio...");
+                        
+                        
+                        // Keeping it only in console logs as requested
+                        
                         isRecording = false;
                         int endRecordingPos = micPosition;
                         SendAudioData(startRecordingPos, endRecordingPos);
@@ -182,6 +193,11 @@ public class VoiceInteractionClient : MonoBehaviour
                         if (parsed?.type == "text" && !string.IsNullOrEmpty(parsed.text))
                         {
                             string aiText = parsed.text;
+                            
+                            if (responseTextDisplay != null) {
+                                responseTextDisplay.text = aiText;
+                            }
+                            
                             DialogUIManager.Instance?.ShowAIMessage(aiText);
                         }
                         else if (parsed?.type == "audio_start")
