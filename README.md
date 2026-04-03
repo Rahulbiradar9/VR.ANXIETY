@@ -1,4 +1,4 @@
-# VR Anxiety Therapy — AI Voice Interaction System
+# VR Anxiety Therapy — AI Voice Interaction System 
 
 A full-stack VR therapy application combining a **FastAPI AI backend** with a **Unity VR client** (Meta Quest / OpenXR). A 3D character (Alice) holds real-time spoken conversations with the user using voice activity detection, speech recognition, an LLM, neural text-to-speech, and a live **dialog canvas UI** that shows what Alice is saying.
 
