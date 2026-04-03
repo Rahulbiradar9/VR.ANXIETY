@@ -96,7 +96,7 @@ async def websocket_endpoint(websocket: WebSocket):
         print(f"WebSocket metadata parse error using random session_id={session_id}")
 
     # Generate initial greeting
-    greeting_text = "Hi, my name is Alice. What do you want to talk about?"
+    greeting_text = "Hey there! How's your day going so far?"
     print(f"[{session_id}] WS Bot (Initial): {greeting_text}")
     session_manager.add_message(session_id, "assistant", greeting_text)
     
@@ -120,11 +120,12 @@ async def websocket_endpoint(websocket: WebSocket):
             # bytes as a complete utterance for now (client controls chunk).
             
             user_text = await stt_service.transcribe_audio(audio_data)
-            print(f"[{session_id}] WS User says: {user_text}")
 
             if not user_text:
-                await websocket.send_json({"type": "status", "message": "Listening..."})
-                continue
+                user_text = "[User remained silent]"
+                print(f"[{session_id}] WS User says: {user_text}")
+            else:
+                print(f"[{session_id}] WS User says: {user_text}")
                 
             session_manager.add_message(session_id, "user", user_text)
             history = session_manager.get_context(session_id)
