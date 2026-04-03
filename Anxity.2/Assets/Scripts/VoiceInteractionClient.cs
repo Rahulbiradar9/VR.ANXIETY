@@ -35,6 +35,11 @@ public class VoiceInteractionClient : MonoBehaviour
     [Header("UI Settings")]
     [Tooltip("Drag and drop your TextMeshPro UI element here")]
     public TextMeshProUGUI responseTextDisplay;
+    [Tooltip("Maximum lines to display before scrolling up")]
+    public int maxDisplayLines = 6;
+    [Tooltip("Delay between each word typed")]
+    public float typingSpeed = 0.08f;
+    private Coroutine typewriterCoroutine;
 
     [Header("VAD Settings")]
     public float silenceThreshold = 0.02f;
@@ -195,7 +200,8 @@ public class VoiceInteractionClient : MonoBehaviour
                             string aiText = parsed.text;
                             
                             if (responseTextDisplay != null) {
-                                responseTextDisplay.text = aiText;
+                                if (typewriterCoroutine != null) StopCoroutine(typewriterCoroutine);
+                                typewriterCoroutine = StartCoroutine(TypewriterScrolling(aiText));
                             }
                             
                             DialogUIManager.Instance?.ShowAIMessage(aiText);
@@ -344,5 +350,39 @@ public class VoiceInteractionClient : MonoBehaviour
         stream.Close();
 
         return wavData;
+    }
+
+    private IEnumerator TypewriterScrolling(string fullText)
+    {
+        responseTextDisplay.text = "";
+        string currentText = "";
+        string[] words = fullText.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        
+        foreach (string word in words)
+        {
+            currentText += word + " ";
+            responseTextDisplay.text = currentText;
+            
+            // Force mesh update to calculate line count
+            responseTextDisplay.ForceMeshUpdate();
+            
+            // If we exceeded max lines, remove words from the beginning until we are back to maxLines
+            while (responseTextDisplay.textInfo.lineCount > maxDisplayLines)
+            {
+                int firstSpace = currentText.IndexOf(' ');
+                if (firstSpace >= 0)
+                {
+                    currentText = currentText.Substring(firstSpace + 1);
+                    responseTextDisplay.text = currentText;
+                    responseTextDisplay.ForceMeshUpdate();
+                }
+                else
+                {
+                    break;
+                }
+            }
+            
+            yield return new WaitForSeconds(typingSpeed);
+        }
     }
 }
